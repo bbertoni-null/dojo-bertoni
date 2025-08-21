@@ -6,17 +6,6 @@ export default async (req, res) => {
   }
 
   const { email, listId } = req.body;
-  const recaptchaToken = req.headers['x-recaptcha-token'];
-
-  // Verificação do reCAPTCHA
-  const recaptchaResponse = await fetch(
-    `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
-  );
-  const recaptchaData = await recaptchaResponse.json();
-
-  if (!recaptchaData.success || recaptchaData.score < 0.5) {
-    return res.status(400).json({ ok: false, message: 'reCAPTCHA verification failed.' });
-  }
 
   // Adicionar e-mail ao Brevo
   const brevoApiKey = process.env.BREVO_API_KEY;
