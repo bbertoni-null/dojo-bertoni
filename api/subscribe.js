@@ -1,6 +1,6 @@
-import fetch from 'node-fetch';
-
-export default async function handler(req, res) {
+// api/subscribe.js
+module.exports = async (req, res) => {
+  // CORS (se chamar de outro domínio)
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -12,40 +12,56 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  try {
-    const { email, listId } = req.body || {};
-    const brevoApiKey = process.env.BREVO_API_KEY; 
+  // Sempre liberar CORS também no POST (útil p/ depurar)
+  res.setHeader('Access-Control-Allow-Origin', '*');
 
-    if (!email || !listId) {
-      return res.status(400).json({ message: 'O e-mail e o listId são obrigatórios.' });
+  try {
+    // Em alguns projetos Vercel o req.body pode vir como string
+    let body = req.body;
+    if (!body || typeof body === 'string') {
+      try { body = JSON.parse(body || '{}'); } catch { body = {}; }
     }
 
+    const { email, listId, attributes } = body || {};
+    if (!email || !listId) {
+      return res.status(400).json({ message: 'email e listId são obrigatórios' });
+    }
+
+    // Usa fetch nativo do Node 18+/20+ (Vercel)
     const resp = await fetch('https://api.brevo.com/v3/contacts?updateEnabled=true', {
       method: 'POST',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        'api-key': brevoApiKey, 
+        'api-key': process.env.BREVO_API_KEY, // precisa estar definida no ambiente **Production**
       },
       body: JSON.stringify({
         email,
         listIds: [Number(listId)],
+        attributes: attributes || {}
       }),
     });
 
+    // Alguns status de sucesso da Brevo: 201 (created) / 204 (ok sem body)
     if (resp.status === 201 || resp.status === 204) {
       return res.status(200).json({ ok: true });
     }
 
-    const json = await resp.json().catch(() => ({}));
+    // Tenta ler o body (pode não ser JSON em caso de erro infra)
+    const text = await resp.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch {}
+
     if (json?.code === 'duplicate_parameter') {
       return res.status(200).json({ ok: true, duplicate: true });
     }
 
-    console.error('Brevo API Error:', json);
-    return res.status(resp.status).json({ message: json?.message || 'Falha ao cadastrar. Verifique a chave da API.', code: json?.code || null });
+    return res.status(resp.status).json({
+      message: json?.message || text || 'Falha ao cadastrar',
+      code: json?.code || null
+    });
   } catch (err) {
-    console.error('Erro na requisição:', err);
-    return res.status(500).json({ message: 'Erro interno. Verifique a BREVO_API_KEY.', code: null });
+    console.error('subscribe fatal error:', err);
+    return res.status(500).json({ message: 'Erro interno' });
   }
-}
+};
