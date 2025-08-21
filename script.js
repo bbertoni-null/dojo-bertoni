@@ -24,7 +24,7 @@ async function subscribe(e){
   status.textContent = 'Enviando…';
 
   grecaptcha.ready(function() {
-    grecaptcha.execute('6Le-Oq0rAAAAAErwSAAnWLoqNR5azw9pgpDXGaOp', {action: 'submit'}).then(async function(token) {
+    grecaptcha.execute('6Lc9uq0rAAAAAGhwOaXW0oRKFNeZ3ueW42QDTiBY', {action: 'submit'}).then(async function(token) {
       const email = form.email.value.trim();
       const listId = Number(form.dataset.listId || document.getElementById('subscribeForm')?.dataset.listId);
     

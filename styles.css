@@ -473,3 +473,6 @@ section {
   text-decoration: none;
   background-color: #ff5a5f;
 }
+.grecaptcha-badge {
+    visibility: hidden;
+}
