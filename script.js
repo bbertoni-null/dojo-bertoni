@@ -23,44 +23,37 @@ async function subscribe(e){
   const status = document.getElementById('formStatus') || createStatusBelow(form);
   status.textContent = 'Enviando…';
 
-  grecaptcha.ready(function() {
-    grecaptcha.execute('6Lc9uq0rAAAAAGhwOaXW0oRKFNeZ3ueW42QDTiBY', {action: 'submit'}).then(async function(token) {
-      const email = form.email.value.trim();
-      const listId = Number(form.dataset.listId || document.getElementById('subscribeForm')?.dataset.listId);
-    
-      if (!email || !listId) {
-        status.textContent = 'Erro: e-mail ou lista inválidos.';
-        return false;
-      }
-    
-      try {
-        const res = await fetch('/api/subscribe', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-Recaptcha-Token': token // Passa o token no cabeçalho
-          },
-          body: JSON.stringify({ email, listId })
-        });
-    
-        const data = await res.json().catch(() => ({}));
-    
-        if (res.ok && data?.ok) {
-          status.textContent = data.duplicate
-            ? 'Você já está na nossa lista. 😉'
-            : 'Inscrição confirmada! Confira seu e-mail.';
-          showPopup();
-          form.reset();
-        } else {
-          status.textContent = 'Erro: ' + (data?.message || 'não foi possível cadastrar.');
-          console.warn('subscribe error:', data);
-        }
-      } catch (err){
-        console.error(err);
-        status.textContent = 'Erro de conexão. Tente novamente.';
-      }
+  const email = form.email.value.trim();
+  const listId = Number(form.dataset.listId || document.getElementById('subscribeForm')?.dataset.listId);
+
+  if (!email || !listId) {
+    status.textContent = 'Erro: e-mail ou lista inválidos.';
+    return false;
+  }
+
+  try {
+    const res = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, listId })
     });
-  });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data?.ok) {
+      status.textContent = data.duplicate
+        ? 'Você já está na nossa lista. 😉'
+        : 'Inscrição confirmada! Confira seu e-mail.';
+      showPopup();
+      form.reset();
+    } else {
+      status.textContent = 'Erro: ' + (data?.message || 'não foi possível cadastrar.');
+      console.warn('subscribe error:', data);
+    }
+  } catch (err){
+    console.error(err);
+    status.textContent = 'Erro de conexão. Tente novamente.';
+  }
 
   return false;
 }

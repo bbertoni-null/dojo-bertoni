@@ -1,40 +1,50 @@
 import fetch from 'node-fetch';
 
-export default async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
+export default async function handler(req, res) {
+  // Preflight CORS (se acessar de outro domain)
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(204).end();
   }
 
-  const { email } = req.body;
-
-  const brevoApiKey = process.env.BREVO_API_KEY;
-  const brevoListId = 4; // Valor fixo
-
-  const brevoData = {
-    email,
-    listIds: [brevoListId],
-    updateEnabled: true,
-  };
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
 
   try {
-    const brevoResponse = await fetch('https://api.brevo.com/v3/contacts', {
+    const { email, listId } = req.body || {};
+    if (!email || !listId) {
+      return res.status(400).json({ message: 'email e listId são obrigatórios' });
+    }
+
+    const resp = await fetch('https://api.brevo.com/v3/contacts?updateEnabled=true', {
       method: 'POST',
       headers: {
-        'api-key': brevoApiKey,
+        Accept: 'application/json',
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'api-key': process.env.BREVO_API_KEY, // variável de ambiente na Vercel
       },
-      body: JSON.stringify(brevoData)
+      body: JSON.stringify({
+        email,
+        listIds: [Number(listId)],
+      }),
     });
 
-    if (brevoResponse.ok) {
-      return res.status(200).json({ ok: true, duplicate: brevoResponse.status === 201 });
-    } else {
-      const errorData = await brevoResponse.json().catch(() => ({}));
-      return res.status(brevoResponse.status).json({ ok: false, message: errorData.message || 'Erro desconhecido da API do Brevo' });
+    if (resp.status === 201 || resp.status === 204) {
+      return res.status(200).json({ ok: true });
     }
+
+    const json = await resp.json().catch(() => ({}));
+    if (json?.code === 'duplicate_parameter') {
+      // Já existe — tratamos como sucesso
+      return res.status(200).json({ ok: true, duplicate: true });
+    }
+
+    return res.status(resp.status).json({ message: json?.message || 'Falha ao cadastrar', code: json?.code || null });
   } catch (err) {
-    console.error('Erro na requisição da API do Brevo:', err);
-    return res.status(500).json({ ok: false, message: 'Erro de conexão ou requisição. Verifique a BREVO_API_KEY.' });
+    console.error(err);
+    return res.status(500).json({ message: 'Erro interno' });
   }
-};
+}
