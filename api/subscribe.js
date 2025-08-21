@@ -13,9 +13,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, listId } = req.body || {};
-    if (!email || !listId) {
-      return res.status(400).json({ message: 'email e listId são obrigatórios' });
+    const { email } = req.body || {};
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    const brevoListId = 4; 
+
+    if (!email) {
+      return res.status(400).json({ message: 'O e-mail é obrigatório.' });
     }
 
     const resp = await fetch('https://api.brevo.com/v3/contacts?updateEnabled=true', {
@@ -23,11 +26,11 @@ export default async function handler(req, res) {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        'api-key': process.env.BREVO_API_KEY,
+        'api-key': brevoApiKey, 
       },
       body: JSON.stringify({
         email,
-        listIds: [Number(listId)],
+        listIds: [brevoListId],
       }),
     });
 
@@ -40,11 +43,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, duplicate: true });
     }
 
-    // Adiciona mais detalhes em caso de erro.
     console.error('Brevo API Error:', json);
     return res.status(resp.status).json({ message: json?.message || 'Falha ao cadastrar. Verifique a chave da API.', code: json?.code || null });
   } catch (err) {
-    console.error('Internal Server Error:', err);
-    return res.status(500).json({ message: 'Erro de conexão. Verifique a BREVO_API_KEY.', code: null });
+    console.error('Erro na requisição:', err);
+    return res.status(500).json({ message: 'Erro interno. Verifique a BREVO_API_KEY.', code: null });
   }
 }
