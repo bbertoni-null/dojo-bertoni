@@ -13,12 +13,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email } = req.body || {};
-    const brevoApiKey = process.env.BREVO_API_KEY;
-    const brevoListId = 4; 
+    const { email, listId } = req.body || {};
+    const brevoApiKey = process.env.BREVO_API_KEY; 
 
-    if (!email) {
-      return res.status(400).json({ message: 'O e-mail é obrigatório.' });
+    if (!email || !listId) {
+      return res.status(400).json({ message: 'O e-mail e o listId são obrigatórios.' });
     }
 
     const resp = await fetch('https://api.brevo.com/v3/contacts?updateEnabled=true', {
@@ -30,7 +29,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         email,
-        listIds: [brevoListId],
+        listIds: [Number(listId)],
       }),
     });
 
