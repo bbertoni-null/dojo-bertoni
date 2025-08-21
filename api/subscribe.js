@@ -1,7 +1,6 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
-  // Preflight CORS (se acessar de outro domain)
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -24,7 +23,7 @@ export default async function handler(req, res) {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        'api-key': process.env.BREVO_API_KEY, // variável de ambiente na Vercel
+        'api-key': process.env.BREVO_API_KEY,
       },
       body: JSON.stringify({
         email,
@@ -38,13 +37,14 @@ export default async function handler(req, res) {
 
     const json = await resp.json().catch(() => ({}));
     if (json?.code === 'duplicate_parameter') {
-      // Já existe — tratamos como sucesso
       return res.status(200).json({ ok: true, duplicate: true });
     }
 
-    return res.status(resp.status).json({ message: json?.message || 'Falha ao cadastrar', code: json?.code || null });
+    // Adiciona mais detalhes em caso de erro.
+    console.error('Brevo API Error:', json);
+    return res.status(resp.status).json({ message: json?.message || 'Falha ao cadastrar. Verifique a chave da API.', code: json?.code || null });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Erro interno' });
+    console.error('Internal Server Error:', err);
+    return res.status(500).json({ message: 'Erro de conexão. Verifique a BREVO_API_KEY.', code: null });
   }
 }
