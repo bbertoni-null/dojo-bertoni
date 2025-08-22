@@ -1,6 +1,6 @@
 // Mostra o ano atual no rodapé
 const yearEl = document.getElementById('year');
-if (yearEl) yearEl.textContent = new Date().getFullYear();
+if (yearEl) yearEl.textContent = '2025';
 
 // Adicione este código para o menu responsivo
 document.addEventListener('DOMContentLoaded', () => {
